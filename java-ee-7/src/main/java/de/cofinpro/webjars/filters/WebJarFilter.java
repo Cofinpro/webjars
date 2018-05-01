@@ -30,7 +30,7 @@ public class WebJarFilter implements Filter {
         logger.info("Init");
     }
 
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) {
         HttpServletRequest httpRequest = (HttpServletRequest) servletRequest;
         String fullPathToWebjar = getFullPathToWebJar(httpRequest);
         writeWebjarContentToServletResponseOutputStream(fullPathToWebjar, servletResponse);
