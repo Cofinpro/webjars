@@ -19,7 +19,7 @@ import java.util.Optional;
  * Created by David
  * Date: 01.05.2018 - 11:24.
  */
-@WebFilter(filterName = "webjarFilter", urlPatterns = "/*")
+@WebFilter(filterName = "webjarFilter", urlPatterns = "/webjars/*")
 public class WebJarFilter implements Filter {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
