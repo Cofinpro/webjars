@@ -31,8 +31,7 @@ public class WebJarFilter implements Filter {
     }
 
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) {
-        HttpServletRequest httpRequest = (HttpServletRequest) servletRequest;
-        String fullPathToWebjar = getFullPathToWebJar(httpRequest);
+        String fullPathToWebjar = getFullPathToWebJar((HttpServletRequest) servletRequest);
         writeWebjarContentToServletResponseOutputStream(fullPathToWebjar, servletResponse);
         // explicitly don't call the filter chain because we have written to the output stream
     }
