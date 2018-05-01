@@ -2,6 +2,7 @@ package de.cofinpro.webjars.producers;
 
 import org.webjars.WebJarAssetLocator;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 /**
@@ -9,7 +10,7 @@ import javax.enterprise.inject.Produces;
  * Date: 01.05.2018 - 16:03.
  */
 public class WebJarAssetLocatorProducer {
-    @Produces
+    @Produces @ApplicationScoped
     public WebJarAssetLocator webJarAssetLocator() {
         return new WebJarAssetLocator();
     }
