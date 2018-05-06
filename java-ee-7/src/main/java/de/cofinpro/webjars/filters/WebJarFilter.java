@@ -9,39 +9,124 @@ import org.webjars.WebJarAssetLocator;
 import javax.inject.Inject;
 import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
+import javax.servlet.annotation.WebInitParam;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
+import static de.cofinpro.webjars.filters.WebJarFilter.WEB_INIT_PARAM_RESPONSE_SERVE_METHOD;
+
 /**
  * Created by David
  * Date: 01.05.2018 - 11:24.
  */
-@WebFilter(filterName = "webjarFilter", urlPatterns = "/webjars/*")
+@WebFilter(
+        filterName = "webjarFilter",
+        urlPatterns = "/webjars/*",
+        initParams = {
+                @WebInitParam(
+                        name = WEB_INIT_PARAM_RESPONSE_SERVE_METHOD,
+                        description = "Defines how this filter shall handle the resolution of the filter",
+                        value = "WRITE_BYTE_RESPONSE")
+        }
+)
 public class WebJarFilter implements Filter {
     private Logger logger = LoggerFactory.getLogger(getClass());
+
+    // name of web init param for response serve method
+    static final String WEB_INIT_PARAM_RESPONSE_SERVE_METHOD = "responseServeMethod";
 
     @Inject
     private WebJarAssetLocator webJarAssetLocator;
 
-    public void init(FilterConfig filterConfig) throws ServletException {
-        logger.info("Init");
+    // Controls behavior of the filter
+    ResponseServeMethod responseServeMethod;
+
+    /**
+     * Defines valid values for the init parameter "responseServeMethod"
+     */
+    enum ResponseServeMethod {
+        WRITE_BYTE_RESPONSE,
+        REDIRECT
     }
 
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) {
-        String fullPathToWebjar = getFullPathToWebJar((HttpServletRequest) servletRequest);
-        writeWebjarContentToServletResponseOutputStream(fullPathToWebjar, servletResponse);
-        // explicitly don't call the filter chain because we have written to the output stream
+    @Override
+    public void init(FilterConfig filterConfig) {
+        initResponseServeMethod(filterConfig);
     }
 
+    /**
+     * Core filter method invoked by the container.
+     * Behavior depends on the response server method: Either redirect to versioned webjar or
+     * directly write content of versioned web jar into output stream.
+     * @param servletRequest ServletRequest
+     * @param servletResponse ServletResponse
+     * @param filterChain Filter chain
+     * @throws IOException IOException
+     * @throws ServletException ServletException
+     */
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+
+        String fullPathToWebjar = getFullPathToWebJar(httpServletRequest);
+        if (ResponseServeMethod.REDIRECT.equals(responseServeMethod)) {
+            redirectToVersionedWebjar(fullPathToWebjar, httpServletRequest, httpServletResponse);
+            filterChain.doFilter(servletRequest, servletResponse);
+        } else {
+            writeWebjarContentToServletResponseOutputStream(fullPathToWebjar, servletResponse);
+            // explicitly don't call the filter chain because we have written to the output stream
+        }
+    }
+
+    /**
+     * Redirects to the versioned webjar.
+     * @param fullPathToWebjar Full-Path to webjar which was previously resolved using the webjar locator
+     * @param httpServletRequest HttpServletRequest
+     * @param httpServletResponse HttpServletResponse
+     */
+    private void redirectToVersionedWebjar(String fullPathToWebjar, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+        String redirectLocation = fullPathToWebjar.replaceAll("^.*/webjars/", "/webjars/");
+        boolean shouldRedirect = ! httpServletRequest.getRequestURI().contains(redirectLocation);
+        if (shouldRedirect) {
+            try {
+                httpServletResponse.sendRedirect(redirectLocation);
+            } catch (IOException e) {
+                logger.error("An error occured during a redirect", e);
+            }
+        }
+    }
+
+    @Override
     public void destroy() {
         // nop
     }
 
     /**
+     * Initializes the value for the response serve method by using the init parameter passed to the filter.
+     * If the value does not adhere to one of the values of the ResponseServeMethod-enum, the fallback value of
+     * <em>WRITE_BYTE_RESPONSE</em> is used.
+     * @param filterConfig Configuration of the filter, passed in by the container
+     */
+    private void initResponseServeMethod(FilterConfig filterConfig) {
+        String initParameterForResponseServeMethod = filterConfig.getInitParameter(WEB_INIT_PARAM_RESPONSE_SERVE_METHOD);
+        Optional<String> responseServeMethodInitParameter = Optional.ofNullable(initParameterForResponseServeMethod);
+        String enumNameToUse = responseServeMethodInitParameter.orElse(ResponseServeMethod.WRITE_BYTE_RESPONSE.name());
+        try {
+            responseServeMethod = ResponseServeMethod.valueOf(enumNameToUse);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Could not find valid response serve method for value = {}. Falling back to {}.", initParameterForResponseServeMethod, ResponseServeMethod.WRITE_BYTE_RESPONSE.name());
+            responseServeMethod = ResponseServeMethod.WRITE_BYTE_RESPONSE;
+        }
+    }
+
+    /**
      * Gets full path to web jar using the {@link WebJarAssetLocator}
+     *
      * @param httpRequest HttpServletRequest
      * @return full path to web jar
      */
@@ -76,9 +161,10 @@ public class WebJarFilter implements Filter {
     }
 
     /**
-     * Write the content of a webjar to the output stream of the servlet response
+     * Write the content of a webjar to the output stream of the servlet response.
+     *
      * @param fullPathToWebjar full path to the webjar file (META-INF/resources/....)
-     * @param servletResponse Servlet-Response object
+     * @param servletResponse  Servlet-Response object
      */
     private void writeWebjarContentToServletResponseOutputStream(String fullPathToWebjar, ServletResponse servletResponse) {
         try {
