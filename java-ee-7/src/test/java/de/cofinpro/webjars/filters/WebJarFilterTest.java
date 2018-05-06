@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -106,5 +105,16 @@ public class WebJarFilterTest {
         verify(filterChain, times(1)).doFilter(httpServletRequest, httpServletResponse);
     }
 
-
+    // Test if resolution also works, if the context root is not simply set to "/" but to "/foo/"
+    @Test
+    public void doFilter_nestedContextRoot() throws IOException, ServletException {
+        when(webJarAssetLocator.getFullPath("jquery", "jquery.min.js")).thenReturn("META-INF/resources/webjars/jquery/3.0.0/jquery.min.js");
+        webJarFilter.responseServeMethod = WebJarFilter.ResponseServeMethod.REDIRECT;
+        when(httpServletRequest.getRequestURI()).thenReturn("foo/webjars/jquery/jquery.min.js");
+        webJarFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+        InOrder inOrder = inOrder(httpServletResponse, filterChain);
+        inOrder.verify(httpServletResponse, times(1)).sendRedirect("foo/webjars/jquery/3.0.0/jquery.min.js");
+        inOrder.verify(filterChain, times(1)).doFilter(httpServletRequest, httpServletResponse);
+        inOrder.verifyNoMoreInteractions();
+    }
 }

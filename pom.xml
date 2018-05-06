@@ -13,5 +13,6 @@
         <module>spring-boot-mvc</module>
         <module>java-ee-7</module>
         <module>bom</module>
+        <module>java-ee-7-with-webfilter-resolver</module>
     </modules>
 </project>

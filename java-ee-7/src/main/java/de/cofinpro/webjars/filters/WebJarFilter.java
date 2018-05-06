@@ -90,7 +90,8 @@ public class WebJarFilter implements Filter {
      * @param httpServletResponse HttpServletResponse
      */
     private void redirectToVersionedWebjar(String fullPathToWebjar, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
-        String redirectLocation = fullPathToWebjar.replaceAll("^.*/webjars/", "/webjars/");
+        String pathAfterWebjarFolder = fullPathToWebjar.replaceAll("^.*/webjars/", "");
+        String redirectLocation = httpServletRequest.getRequestURI().replaceAll("webjars/.*$", "webjars/" + pathAfterWebjarFolder);
         boolean shouldRedirect = ! httpServletRequest.getRequestURI().contains(redirectLocation);
         if (shouldRedirect) {
             try {
@@ -132,11 +133,12 @@ public class WebJarFilter implements Filter {
      */
     private String getFullPathToWebJar(HttpServletRequest httpRequest) {
         String requestUri = httpRequest.getRequestURI().replaceAll("^[/\\s]+", ""); // remove leading slashes and whitespaces
-        String[] uriParts = requestUri.split("/");
+        String requestUriAfterWebjarsSegment = requestUri.replaceAll("^.*webjars/", ""); // we only care about whatever comes after /webjars/
+        String[] uriParts = requestUriAfterWebjarsSegment.split("/");
         String fullPathToWebjar = requestUri;
         // The URI should be something along the lines of webjars/<webjar name>/<specific file>
         if (uriParts.length > 1) {
-            String webjarId = uriParts[1]; // The first segment is always /webjars/, the second one is the id
+            String webjarId = uriParts[0]; // The first segment is always /webjars/, the second one is the id
             String filename = uriParts[uriParts.length - 1]; // filename should be the last segment
             logger.debug("Attempting to resolve webjar with webjarId = {} and filename = {}", webjarId, filename);
             try {
