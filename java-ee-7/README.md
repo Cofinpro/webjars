@@ -1,7 +1,7 @@
 # java-ee-7
-Dieses Modul zeigt wie Webjars im Java EE Umfeld verwendet werden könne.
-Konkret wird Wildfly 12 verwendet.
+This module shows how web jars can be used in a Java EE environment.
+Specifically, Wildfly 12 is used.
 
-Dieser kann über das Maven-goal wildfly:run gestartet werden.
-Die Admin Konsole kann über http://localhost:9990 erreicht werden.
-Login ist über den Benutzer _admin_ mit dem Passwort _admin_ möglich.
+The Wildfly server can be run using the maven goal `wildfly:run`. Web Admin Console
+is accessible through http://localhost:9990.
+Login is possible with username = _admin_ and password = _admin_.
