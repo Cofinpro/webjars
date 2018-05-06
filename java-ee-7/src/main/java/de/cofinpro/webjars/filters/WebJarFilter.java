@@ -20,7 +20,7 @@ import java.util.Optional;
 import static de.cofinpro.webjars.filters.WebJarFilter.WEB_INIT_PARAM_RESPONSE_SERVE_METHOD;
 
 /**
- * Created by David
+ * Created by David Olah (@olada)
  * Date: 01.05.2018 - 11:24.
  */
 @WebFilter(
